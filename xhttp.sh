@@ -1369,6 +1369,6 @@ function main() {
   main_processes
 }
 
-[[ $EUID -ne 0 ]] && _error "请使用 root 权限运行该脚本"
+[[ $EUID -ne 0 ]] && _error "Please use root permission to run the script"
 
 main
