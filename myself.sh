@@ -1173,7 +1173,7 @@ function install_docker() {
 
 # install
 function install_cloudreve() {
-  _info "zh: 创建 cloudreve 相关目录。"
+  _info "zh: Creating directories for cloudreve."
   _info "en: Creating directories for cloudreve."
   mkdir -vp "${CLOUDREVE_PATH}" &&
     mkdir -vp "${CLOUDREVE_PATH}/cloudreve/{uploads,avatar}" &&
@@ -1182,15 +1182,15 @@ function install_cloudreve() {
     mkdir -vp "${CLOUDREVE_PATH}/aria2/config" &&
     mkdir -vp "${CLOUDREVE_PATH}/data/aria2" &&
     chmod -R 777 "${CLOUDREVE_PATH}/data/aria2"
-  _info "zh: 下载管理 cloudreve 的 docker-compose.yaml。"
+  _info "zh: Downloading docker-compose.yaml for managing cloudreve."
   _info "en: Downloading docker-compose.yaml for managing cloudreve."
   _error_detect "curl -fsSL -o ${CLOUDREVE_PATH}/docker-compose.yaml https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudreve/docker-compose.yaml"
   cd "${CLOUDREVE_PATH}"
   docker_compose_manage start
-  _info "zh: 等待 cloudreve 启动。"
+  _info "zh: Waiting for cloudreve to start."
   _info "en: Waiting for cloudreve to start."
   sleep 5
-  _info "zh: 获取 cloudreve 版本号，初始账号，初始密码。"
+  _info "zh: Getting the version, initial username, and initial password of cloudreve."
   _info "en: Getting the version, initial username, and initial password of cloudreve."
   local cloudreve_version="$(docker logs cloudreve | grep -Eoi "v[0-9]+.[0-9]+.[0-9]+" | cut -c2-)"
   local cloudreve_username="$(docker logs cloudreve | grep Admin | awk '{print $NF}' | head -1)"
@@ -1198,11 +1198,11 @@ function install_cloudreve() {
   jq --arg version "${cloudreve_version}" '.cloudreve.version = $version' "${XRAY_SCRIPT_PATH}/config.json" >"${XRAY_SCRIPT_PATH}/tmp.json" && mv -f "${XRAY_SCRIPT_PATH}/tmp.json" "${XRAY_SCRIPT_PATH}/config.json"
   jq --arg username "${cloudreve_username}" '.cloudreve.username = $username' "${XRAY_SCRIPT_PATH}/config.json" >"${XRAY_SCRIPT_PATH}/tmp.json" && mv -f "${XRAY_SCRIPT_PATH}/tmp.json" "${XRAY_SCRIPT_PATH}/config.json"
   jq --arg password "${cloudreve_password}" '.cloudreve.password = $password' "${XRAY_SCRIPT_PATH}/config.json" >"${XRAY_SCRIPT_PATH}/tmp.json" && mv -f "${XRAY_SCRIPT_PATH}/tmp.json" "${XRAY_SCRIPT_PATH}/config.json"
-  _info "zh: 下载 cloudreve_watchtower.sh。"
+  _info "zh: Downloading cloudreve_watchtower.sh."
   _info "en: Downloading cloudreve_watchtower.sh."
   _error_detect "curl -fsSL -o ${XRAY_SCRIPT_PATH}/cloudreve_watchtower.sh https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudreve/watchtower.sh"
   chmod a+x ${XRAY_SCRIPT_PATH}/cloudreve_watchtower.sh
-  _info "zh: 设置 cloudreve 版本号定时记录任务。"
+  _info "zh: Setting up crontab task to record cloudreve version."
   _info "en: Setting up crontab task to record cloudreve version."
   (
     crontab -l 2>/dev/null
@@ -1212,13 +1212,13 @@ function install_cloudreve() {
 
 # purge
 function purge_cloudreve() {
-  _warn "zh: 停止 Cloudreve。"
+  _warn "zh: Stopping Cloudreve."
   _warn "en: Stopping Cloudreve."
   cd "${CLOUDREVE_PATH}"
-  _info "zh: 删除 cloudreve 版本号定时记录任务。"
+  _info "zh: Delete crontab task to record cloudreve version."
   _info "en: Delete crontab task to record cloudreve version."
   crontab -l | grep -v "${XRAY_SCRIPT_PATH}/cloudreve_watchtower.sh ${XRAY_SCRIPT_PATH} >/dev/null 2>&1" | crontab -
-  _warn "zh: 卸载 Cloudreve。"
+  _warn "zh: Purging Cloudreve."
   _warn "en: Purging Cloudreve."
   docker_compose_manage rmi
   cd "${HOME}"
@@ -1227,23 +1227,22 @@ function purge_cloudreve() {
 
 # install
 function install_cloudflare_warp() {
-  _info "zh: 创建 cloudflare-warp 相关目录。"
+  _info "zh: Creating directories for cloudflare_warp."
   _info "en: Creating directories for cloudflare_warp."
   mkdir -vp "${CLOUDFLARE_WARP_PATH}"
   mkdir -vp "${HOME}/.warp"
-  _info "zh: 下载构建 cloudflare-warp 镜像的 Dockerfile 和 startup.sh。"
+  _info "zh: Downloading Dockerfile and startup.sh for building the cloudflare-warp image."
   _info "en: Downloading Dockerfile and startup.sh for building the cloudflare-warp image."
   _error_detect "curl -fsSL -o ${CLOUDFLARE_WARP_PATH}/Dockerfile https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudflare-warp/Dockerfile"
   _error_detect "curl -fsSL -o ${CLOUDFLARE_WARP_PATH}/startup.sh https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudflare-warp/startup.sh"
   cd "${CLOUDFLARE_WARP_PATH}"
-  _info "zh: 构建自定义 cloudflare-warp 镜像。"
+  _info "zh: Building the custom cloudflare-warp image."
   _info "en: Building the custom cloudflare-warp image."
   docker build -t cloudflare-warp .
-  _info "zh: 运行 cloudflare-warp 镜像。"
+  _info "zh: Running the cloudflare-warp image."
   _info "en: Running the cloudflare-warp image."
   docker run -v "${HOME}/.warp":/var/lib/cloudflare-warp:rw --restart=always --name=cloudflare-warp cloudflare-warp
 }
-
 # purge
 function purge_cloudflare_warp() {
   _warn "zh: 卸载 cloudflare-warp。"
@@ -1270,10 +1269,11 @@ function update_versions_info() {
 # 1.install
 function install() {
   if [[ -f "${XRAY_SCRIPT_PATH}/config.json" ]]; then
-    read -p "zh: 是否重新安装 [y/N] " is_reinstall
+    read -p "zh: Do you want to reinstall [y/N] " is_reinstall
     read -p "en: Do you want to reinstall [y/N] " is_reinstall
     [[ "${is_reinstall}" =~ ^[Yy]$ ]] || exit
   fi
+}
   # Get variable
   read_domain
   read_uuid
@@ -1346,7 +1346,7 @@ function update() {
   if source_update; then
     if [[ ! "${is_enable_brotli}" =~ ^[Yy]$ ]]; then
       # disable brotli
-      _warn "zh: 禁用 brotli 配置。"
+      _warn "zh: Disabling the brotli configuration."
       _warn "en: Disabling the brotli configuration."
       sed -i "/^brotli/,/^brotli_types/s/^/#/" "${NGINX_CONFIG_PATH}/nginxconfig.io/general.conf"
     else
@@ -1381,7 +1381,7 @@ function start() {
   docker_manage start cloudflare-warp
   cd "${CLOUDREVE_PATH}"
   docker_compose_manage start
-  _info "zh: 设置 cloudreve 版本号定时记录任务。"
+  _info "zh: Setting up crontab task to record cloudreve version."
   _info "en: Setting up crontab task to record cloudreve version."
   (
     crontab -l 2>/dev/null
@@ -1447,10 +1447,10 @@ function view_config() {
   echo -e "ShortId     : ${xs_shortId}"
   echo -e "SpiderX     : /"
   echo -e "------------------------------------------"
-  _info "zh: ShortId 是从已有的数据中随机获取，所以可能每次不同。"
+  _info "zh: ShortId is randomly selected from existing data, so it may be different each time."
   _info "en: ShortId is randomly selected from existing data, so it may be different each time."
   echo -e "------------------------------------------"
-  read -p "zh: 是否生成分享链接[y/N] " is_show_share_link
+  read -p "zh: Generate sharing link? [y/N] " is_show_share_link
   read -p "en: Generate sharing link? [y/N] " is_show_share_link
   if [[ "${is_show_share_link}" =~ ^[Yy]$ ]]; then
     local sl=""
@@ -1461,10 +1461,10 @@ function view_config() {
     done
   fi
   echo -e "------------------------------------------"
-  echo -e "zh: ${RED}此脚本仅供交流学习使用，请勿使用此脚本行违法之事。${NC}"
-  echo -e "en: ${RED}This script is for educational purposes only.${NC}"
-  echo -e "zh: ${RED}网络非法外之地，行非法之事，必将接受法律制裁。${NC}"
-  echo -e "en: ${RED}Do not use it for illegal activities.${NC}"
+  echo -e "zh: ${RED}This script is for educational purposes only. Do not use it for illegal activities.${NC}"
+  echo -e "en: ${RED}This script is for educational purposes only. Do not use it for illegal activities.${NC}"
+  echo -e "zh: ${RED}The internet is not above the law; engaging in illegal activities will result in legal consequences.${NC}"
+  echo -e "en: ${RED}The internet is not above the law; engaging in illegal activities will result in legal consequences.${NC}"
   echo -e "------------------------------------------"
 }
 
@@ -1483,7 +1483,7 @@ function change_xray_uuid() {
 # 103.change xray x25519
 function change_xray_x25519() {
   # x25519
-  _info "zh: 使用 xray x25519 生成配对的公私钥。"
+  _info "zh: Generate paired public and private keys using xray x25519."
   _info "en: Generate paired public and private keys using xray x25519."
   local xray_x25519="$(xray x25519)"
   local xs_private_key="$(echo ${xray_x25519} | awk '{print $3}')"
@@ -1510,27 +1510,27 @@ function change_xray_shortIds() {
 
 # 105.change domain
 function change_domain() {
-  echo "zh: TODO: 未完成"
+  echo "zh: TODO: undone"
   echo "en: TODO: undone"
 }
 
 # 106.reset cloudreve admin
 function reset_cloudreve_admin() {
-  _info "zh: 重置 cloudreve 的初始账号，初始密码。"
+  _info "zh: Resetting the initial username and password for cloudreve."
   _info "en: Resetting the initial username and password for cloudreve."
-  _warn "zh: 停止 Cloudreve。"
+  _warn "zh: Stopping Cloudreve."
   _warn "en: Stopping Cloudreve."
   cd "${CLOUDREVE_PATH}"
   docker_compose_manage stop
-  _info "zh: 删除 Cloudreve 的数据库。"
+  _info "zh: Deleting the database of Cloudreve."
   _info "en: Deleting the database of Cloudreve."
   rm -rf "${CLOUDREVE_PATH}/cloudreve/cloudreve.db"
   touch ${CLOUDREVE_PATH}/cloudreve/cloudreve.db
   docker_compose_manage start
-  _info "zh: 等待 cloudreve 启动。"
+  _info "zh: Waiting for cloudreve to start."
   _info "en: Waiting for cloudreve to start."
   sleep 5
-  _info "zh: 获取 cloudreve 版本号，初始账号，初始密码。"
+  _info "zh: Getting the version, initial username, and initial password of cloudreve."
   _info "en: Getting the version, initial username, and initial password of cloudreve."
   local cloudreve_version="$(docker logs cloudreve | grep -Eoi "v[0-9]+.[0-9]+.[0-9]+" | cut -c2-)"
   local cloudreve_username="$(docker logs cloudreve | grep Admin | awk '{print $NF}' | head -1)"
@@ -1555,9 +1555,9 @@ function remove_kernel() {
 function change_ssh_port() {
   local ssh_config="/etc/ssh/sshd_config"
   local current_port="$(sed -En "s/^[#pP].*ort\s*([0-9]*)$/\1/p" "${ssh_config}")"
-  _info "zh: 当前 SSH 连接端口为 ${current_port}"
+  _info "zh: Current SSH connection port is ${current_port}"
   _info "en: Current SSH connection port is ${current_port}"
-  read -p "zh: 请输入新的 SSH 端口号: " new_port
+  read -p "zh: Enter the new SSH port: " new_port
   read -p "en: Enter the new SSH port: " new_port
   validate_port "${new_port}"
   cp "${ssh_config}" "${ssh_config}.bak"
@@ -1565,18 +1565,18 @@ function change_ssh_port() {
   if systemctl restart sshd; then
     firewall_pass allow "${new_port}"
     firewall_pass remove "${current_port}"
-    _info "zh: 当前 SSH 端口已修改为 ${new_port}"
+    _info "zh: Current SSH port has been changed to ${new_port}"
     _info "en: Current SSH port has been changed to ${new_port}"
   else
     mv "${ssh_config}.bak" "${ssh_config}"
-    _error "zh: 无法重启 SSH 服务，请手动检查。"
+    _error "zh: Failed to restart SSH service. Please check manually."
     _error "en: Failed to restart SSH service. Please check manually."
   fi
 }
 
 # 204.Optimize Kernel Parameters
 function optimize_kernel_parameters() {
-  read -p "zh: 是否选择内核参数调优 [y/N] " is_opt
+  read -p "zh: Optimize kernel parameters? [y/N] " is_opt
   read -p "en: Optimize kernel parameters? [y/N] " is_opt
   if [[ "${is_opt}" =~ ^[Yy]$ ]]; then
     # limits
@@ -1656,13 +1656,14 @@ function main() {
   echo -e "zh: ${RED}0.${NC} 退出"
   echo -e "en: ${RED}0.${NC} Exit"
 
-  read -p "zh: 请选择操作: " choice
+  read -p "zh: Please choose an action: " choice
   read -p "en: Choose an action: " choice
 
   if [[ ${choice} -gt 1 && ${choice} -lt 201 && ! -f "${XRAY_SCRIPT_PATH}/config.json" ]]; then
-    _error "zh: 请先使用脚本进行安装。"
+    _error "zh: Please install using the script first."
     _error "en: Please install using the script first."
   fi
+}
 
   case ${choice} in
   1) install ;;
@@ -1683,7 +1684,7 @@ function main() {
   204) optimize_kernel_parameters ;;
   0) exit ;;
   *)
-    _error "zh: 无效的选择。"
+    _error "zh: Invalid choice."
     _error "en: Invalid choice."
     ;;
   esac
