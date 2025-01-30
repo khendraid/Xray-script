@@ -96,24 +96,24 @@ declare SHARE_LINK=''
 
 # status print
 function _input_tips() {
-  printf "${GREEN}[输入提示] ${NC}"
+  printf "${GREEN}[Input Tip] ${NC}"
   printf -- "%s" "$@"
 }
 
 function _info() {
-  printf "${GREEN}[信息] ${NC}"
+  printf "${GREEN}[Info] ${NC}"
   printf -- "%s" "$@"
   printf "\n"
 }
 
 function _warn() {
-  printf "${YELLOW}[警告] ${NC}"
+  printf "${YELLOW}[Warning] ${NC}"
   printf -- "%s" "$@"
   printf "\n"
 }
 
 function _error() {
-  printf "${RED}[错误] ${NC}"
+  printf "${RED}[Error] ${NC}"
   printf -- "%s" "$@"
   printf "\n"
   exit 1
@@ -226,35 +226,35 @@ function _systemctl() {
   local server_name="$2"
   case "${cmd}" in
   start)
-    _info "正在启动 ${server_name} 服务"
+    _info "Starting ${server_name} service"
     systemctl -q is-active ${server_name} || systemctl -q start ${server_name}
     systemctl -q is-enabled ${server_name} || systemctl -q enable ${server_name}
     sleep 2
-    systemctl -q is-active ${server_name} && _info "已启动 ${server_name} 服务" || _error "${server_name} 启动失败"
+    systemctl -q is-active ${server_name} && _info "${server_name} service has started" || _error "${server_name} failed to start"
     ;;
   stop)
-    _info "正在暂停 ${server_name} 服务"
+    _info "Stopping ${server_name} service"
     systemctl -q is-active ${server_name} && systemctl -q stop ${server_name}
     systemctl -q is-enabled ${server_name} && systemctl -q disable ${server_name}
     sleep 2
-    systemctl -q is-active ${server_name} || _info "已暂停 ${server_name} 服务"
+    systemctl -q is-active ${server_name} || _info "${server_name} service has been stopped"
     ;;
   restart)
-    _info "正在重启 ${server_name} 服务"
+    _info "Restarting ${server_name} service"
     systemctl -q is-active ${server_name} && systemctl -q restart ${server_name} || systemctl -q start ${server_name}
     systemctl -q is-enabled ${server_name} || systemctl -q enable ${server_name}
     sleep 2
-    systemctl -q is-active ${server_name} && _info "已重启 ${server_name} 服务" || _error "${server_name} 启动失败"
+    systemctl -q is-active ${server_name} && _info "${server_name} service has been restarted" || _error "${server_name} failed to start"
     ;;
   reload)
-    _info "正在重载 ${server_name} 服务"
+    _info "Reloading ${server_name} service"
     systemctl -q is-active ${server_name} && systemctl -q reload ${server_name} || systemctl -q start ${server_name}
     systemctl -q is-enabled ${server_name} || systemctl -q enable ${server_name}
     sleep 2
-    systemctl -q is-active ${server_name} && _info "已重载 ${server_name} 服务"
+    systemctl -q is-active ${server_name} && _info "${server_name} service has been reloaded"
     ;;
   dr)
-    _info "正在重载 systemd 配置文件"
+    _info "Reloading systemd configuration files"
     systemctl daemon-reload
     ;;
   esac
@@ -265,12 +265,12 @@ function check_xray_script_version() {
   local local_size=$(stat -c %s "${CUR_DIR}/${CUR_FILE}")
   local remote_size=$(curl -fsSL "$url" | jq -r '.[] | select(.name == "xhttp.sh") | .size')
   if [[ ${local_size} -ne ${remote_size} ]]; then
-    _info '发现有新脚本, 是否更新'
-    _input_tips '退出脚本并显示更新命令 [Y/n] '
+    _info 'A new script version has been found, would you like to update?'
+    _input_tips 'Exit script and show update command [Y/n] '
     read -r is_update_script
     case ${is_update_script} in
     N | n)
-      _warn '请及时更新脚本'
+      _warn 'Please update the script in time'
       sleep 2
       ;;
     *)
@@ -300,7 +300,7 @@ function check_os() {
 }
 
 function install_dependencies() {
-  _info "正在下载相关依赖"
+  _info "Downloading related dependencies"
   _install "ca-certificates openssl curl wget jq tzdata qrencode"
   case "$(_os)" in
   centos)
@@ -325,7 +325,7 @@ function install_docker() {
 
 function build_cloudflare_warp() {
   if [[ "${WARP}" -ne 1 && ! -d /usr/local/xray-script/warp ]]; then
-    _info '正在构建 WARP Proxy 镜像'
+    _info 'Building WARP Proxy image'
     mkdir -p /usr/local/xray-script/warp
     mkdir -p ${HOME}/.warp
     _error_detect "wget --no-check-certificate -O /usr/local/xray-script/warp/Dockerfile https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudflare-warp/Dockerfile"
@@ -339,7 +339,7 @@ function get_random_number() {
   local custom_min=${1}
   local custom_max=${2}
   if ((custom_min > custom_max)); then
-    _error "错误：最小值不能大于最大值。"
+    _error "Error: The minimum value cannot be greater than the maximum value."
   fi
   local random_number=$(od -vAn -N2 -i /dev/urandom | awk '{print int($1 % ('$custom_max' - '$custom_min') + '$custom_min')}')
   echo $random_number
@@ -363,13 +363,13 @@ function check_xray_version_is_exists() {
   local xray_version_url="https://github.com/XTLS/Xray-core/releases/tag/v${1##*v}"
   local status_code=$(curl -o /dev/null -s -w '%{http_code}\n' "$xray_version_url")
   if [[ "$status_code" = "404" ]]; then
-    _error "无法找到该版本: $1"
+    _error "Unable to find this version: $1"
   fi
 }
 
 function enable_warp() {
   if [[ "${WARP}" -ne 1 ]]; then
-    _info '正在开启 WARP Proxy 容器'
+    _info 'Enabling WARP Proxy container'
     docker run -v "${HOME}/.warp":/var/lib/cloudflare-warp:rw --restart=always --name=xray-script-warp xray-script-warp
     local outbounds='[{"tag":"warp","protocol":"socks","settings":{"servers":[{"address":"172.17.0.2","port":40001}]}}]'
     jq --argjson outbounds $outbounds '.outbounds += $outbounds' /usr/local/etc/xray/config.json >/usr/local/xray-script/tmp.json && mv -f /usr/local/xray-script/tmp.json /usr/local/etc/xray/config.json
@@ -379,17 +379,14 @@ function enable_warp() {
 
 function disable_warp() {
   if [[ "${WARP}" -eq 1 ]]; then
-    _info '正在关闭 WARP Proxy 容器'
+    _info 'Disabling WARP Proxy container'
     docker stop xray-script-warp
     docker rm xray-script-warp
     docker image rm xray-script-warp
     rm -rf /usr/local/xray-script/warp
     rm -rf ${HOME}/.warp
     jq '.outbounds |= map(select(.tag != "warp"))' /usr/local/etc/xray/config.json >/usr/local/xray-script/tmp.json && mv -f /usr/local/xray-script/tmp.json /usr/local/etc/xray/config.json
-    jq '.routing.rules |= map(select(.outboundTag != "warp"))' /usr/local/etc/xray/config.json >/usr/local/xray-script/tmp.json && mv -f /usr/local/xray-script/tmp.json /usr/local/etc/xray/config.json
-    jq --argjson warp 0 '.warp = $warp' /usr/local/xray-script/config.json >/usr/local/xray-script/tmp.json && mv -f /usr/local/xray-script/tmp.json /usr/local/xray-script/config.json
-  fi
-}
+    jq '.routing.rules |= map(select(.outboundTag != "warp"))' /usr/local/etc/xray/config.json >/usr/local/xray-script/tmp
 
 function enable_cron() {
   if ! [[ -f /usr/local/xray-script/update-dat.sh ]]; then
@@ -473,36 +470,36 @@ function add_rule() {
 
 function add_rule_warp_ip() {
   if [[ "${WARP}" -eq 1 ]]; then
-    _warn '默认使用该功能的用户知道添加 rule 的相关规则'
-    _info '支持逗号分隔的多个值'
-    _input_tips '请输入分流到 WARP 的 ip: '
+    _warn 'Users who use this feature by default know the rules for adding rules'
+    _info 'Supports multiple values separated by commas'
+    _input_tips 'Please enter the IP to be routed to WARP: '
     read -r rule_warp_ip
     if [[ -n "$rule_warp_ip" ]]; then
       add_rule "warp-ip" "ip" "$rule_warp_ip" "warp" "before" "ad-domain"
     fi
   else
-    _error '请开启 WARP Proxy 在进行分流操作'
+    _error 'Please enable WARP Proxy before performing routing operations'
   fi
 }
 
 function add_rule_warp_domain() {
   if [[ "${WARP}" -eq 1 ]]; then
-    _warn '默认使用该功能的用户知道添加 rule 的相关规则'
-    _info '支持逗号分隔的多个值'
-    _input_tips '请输入分流到 WARP 的 domain: '
+    _warn 'Users who use this feature by default know the rules for adding rules'
+    _info 'Supports multiple values separated by commas'
+    _input_tips 'Please enter the domain to be routed to WARP: '
     read -r rule_warp_domain
     if [[ -n "$rule_warp_domain" ]]; then
       add_rule "warp-domain" "domain" "$rule_warp_domain" "warp" "before" "ad-domain"
     fi
   else
-    _error '请开启 WARP Proxy 在进行分流操作'
+    _error 'Please enable WARP Proxy before performing routing operations'
   fi
 }
 
 function add_rule_block_ip() {
-  _warn '默认使用该功能的用户知道添加 rule 的相关规则'
-  _info '支持逗号分隔的多个值'
-  _input_tips '请输入需要屏蔽 ip: '
+  _warn 'Users who use this feature by default know the rules for adding rules'
+  _info 'Supports multiple values separated by commas'
+  _input_tips 'Please enter the IP to be blocked: '
   read -r rule_block_ip
   if [[ -n "$rule_block_ip" ]]; then
     add_rule "block-ip" "ip" "$rule_block_ip" "block" "after" "private-ip"
@@ -510,9 +507,9 @@ function add_rule_block_ip() {
 }
 
 function add_rule_block_domain() {
-  _warn '默认使用该功能的用户知道添加 rule 的相关规则'
-  _info '支持逗号分隔的多个值'
-  _input_tips '请输入需要屏蔽 domain: '
+  _warn 'Users who use this feature by default know the rules for adding rules'
+  _info 'Supports multiple values separated by commas'
+  _input_tips 'Please enter the domain to be blocked: '
   read -r rule_domain_domain
   if [[ -n "$rule_domain_domain" ]]; then
     add_rule "block-domain" "domain" "$rule_domain_domain" "block" "after" "private-ip"
@@ -547,7 +544,7 @@ function read_block_bt() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     is_block_bt='Y'
   else
-    _input_tips '是否开启 bittorrent 屏蔽 [y/N] '
+    _input_tips 'Enable bittorrent blocking? [y/N] '
     read -r is_block_bt
   fi
 }
@@ -556,7 +553,7 @@ function read_block_cn_ip() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     is_block_cn_ip='Y'
   else
-    _input_tips '是否开启国内 ip 屏蔽 [y/N] '
+    _input_tips 'Enable domestic IP blocking? [y/N] '
     read -r is_block_cn_ip
   fi
 }
@@ -565,7 +562,7 @@ function read_block_ads() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     is_block_ads='Y'
   else
-    _input_tips '是否开启广告屏蔽 [y/N] '
+    _input_tips 'Enable ad blocking? [y/N] '
     read -r is_block_ads
   fi
 }
@@ -574,7 +571,7 @@ function read_update_geodata() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     is_update_geodata='Y'
   else
-    _input_tips '是否开启 geodata 自动更新功能 [y/N] '
+    _input_tips 'Enable geodata auto-update feature? [y/N] '
     read -r is_update_geodata
   fi
 }
@@ -583,8 +580,8 @@ function read_port() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _info '端口范围是 1-65535 之间的数字, 如果不在范围内, 则使用默认生成'
-  _input_tips '请输入自定义 port (默认自动生成): '
+  _info 'The port range is between 1-65535; if outside this range, a default will be used.'
+  _input_tips 'Please enter a custom port (automatically generated by default): '
   read -r in_port
 }
 
@@ -592,8 +589,8 @@ function read_uuid() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _info '自定义输入的 uuid ，如果不是标准格式，将会使用 xray uuid -i "自定义字符串" 进行 UUIDv5 映射后填入配置'
-  _input_tips '请输入自定义 UUID (默认自动生成): '
+  _info 'For a custom UUID input, if it's not in standard format, it will use xray uuid -i "custom string" for UUIDv5 mapping before filling it into the configuration'
+  _input_tips 'Please enter a custom UUID (automatically generated by default): '
   read -r in_uuid
 }
 
@@ -601,7 +598,7 @@ function read_seed() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _input_tips '请输入自定义 seed (默认自动生成): '
+  _input_tips 'Please enter a custom seed (automatically generated by default): '
   read -r in_seed
 }
 
@@ -609,7 +606,7 @@ function read_password() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _input_tips '请输入自定义 password (默认自动生成): '
+  _input_tips 'Please enter a custom password (automatically generated by default): '
   read -r in_password
 }
 
@@ -617,22 +614,22 @@ function read_domain() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _info "如果输入的自定义域名在 serverNames.json 存在对应的 key , 则代表使用该数据"
+  _info "If the custom domain you input has a corresponding key in serverNames.json, it means it will use that data"
   until [[ ${is_domain} =~ ^[Yy]$ ]]; do
-    _input_tips '请输入自定义域名 (默认自动生成): '
+    _input_tips 'Please enter a custom domain (automatically generated by default): '
     read -r in_domain
     if [[ -z "${in_domain}" ]]; then
       break
     fi
     check_domain=$(echo ${in_domain} | grep -oE '[^/]+(\.[^/]+)+\b' | head -n 1)
     if ! _is_network_reachable "${check_domain}"; then
-      _warn "\"${check_domain}\" 无法连接"
+      _warn "\"${check_domain}\" cannot be reached"
       continue
     fi
     if ! _is_tls1_3_h2 "${check_domain}"; then
-      _warn "\"${check_domain}\" 不支持 TLSv1.3 或 h2 ，亦或者 Client Hello 不是 X25519"
-      _info "如果你明确知道 \"${check_domain}\" 支持 TLSv1.3(h2), X25519, 可能是识别错误, 可选择直接跳过检查"
-      _input_tips '是否明确确认支持 [y/N] '
+      _warn "\"${check_domain}\" does not support TLSv1.3 or h2, or the Client Hello is not X25519"
+      _info "If you are certain that \"${check_domain}\" supports TLSv1.3(h2), X25519, it might be an identification error, you can choose to skip the check"
+      _input_tips 'Do you confirm support? [y/N] '
       read -r is_support
       if [[ ${is_support} =~ ^[Yy]$ ]]; then
         break
@@ -649,10 +646,10 @@ function read_short_ids() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _info 'shortId 内容为 0 到 f, 长度为 2 的倍数，长度上限为 16'
-  _info '如果输入值为 0 到 8, 则自动生成对 0-16 长度的 shortId'
-  _info '支持逗号分隔的多个值'
-  _input_tips '请输入自定义 shortId (默认自动生成): '
+  _info 'The content of shortId is from 0 to f, with a length that is a multiple of 2, maximum length is 16'
+  _info 'If the input value is between 0 to 8, it will automatically generate a shortId of length 0-16'
+  _info 'Supports multiple values separated by commas'
+  _input_tips 'Please enter a custom shortId (automatically generated by default): '
   read -r in_short_id
 }
 
@@ -660,7 +657,7 @@ function read_path() {
   if [[ ${IS_AUTO} =~ ^[Yy]$ ]]; then
     return
   fi
-  _input_tips '请输入自定义 path (默认自动生成): '
+  _input_tips 'Please enter a custom path (automatically generated by default): '
   read -r in_path
 }
 
@@ -745,7 +742,7 @@ function generate_short_id() {
   elif validate_hex_input "$trimmed_input"; then
     echo "$trimmed_input"
   else
-    _error "'$trimmed_input' 不是有效的输入。"
+    _error "'$trimmed_input' is not a valid input."
   fi
 }
 
@@ -1092,7 +1089,7 @@ function restart_xray() {
 }
 
 function view_xray_config() {
-  _info "根据已有配置文件, 随机获取 serverName 和 shortId 自动生成分享链接与二维码"
+  _info "Based on the existing configuration file, randomly get serverName and shortId to automatically generate a share link and QR code"
   XTLS_CONFIG=$(jq -r '.tag' /usr/local/xray-script/config.json)
   case ${XTLS_CONFIG} in
   mkcp) get_mkcp_data ;;
@@ -1101,12 +1098,12 @@ function view_xray_config() {
   trojan) get_trojan_data ;;
   fallback)
     get_vision_data
-    _info "分享链接: ${SHARE_LINK}"
+    _info "Share link: ${SHARE_LINK}"
     echo ${SHARE_LINK} | qrencode -t ansiutf8
     get_fallback_xhttp_data
     ;;
   esac
-  _info "分享链接: ${SHARE_LINK}"
+  _info "Share link: ${SHARE_LINK}"
   echo ${SHARE_LINK} | qrencode -t ansiutf8
 }
 
@@ -1116,7 +1113,7 @@ function view_xray_traffic() {
 }
 
 function installation_processes() {
-  _input_tips '请选择操作: '
+  _input_tips 'Please select an operation: '
   read -r choose
   case ${choose} in
   2) IS_AUTO='N' ;;
@@ -1125,12 +1122,12 @@ function installation_processes() {
 }
 
 function xray_installation_processes() {
-  _input_tips '请选择操作: '
+  _input_tips 'Please select an operation: '
   read -r choose
   case ${choose} in
   1) INSTALL_OPTION="--version $(curl -fsSL https://api.github.com/repos/XTLS/Xray-core/releases | jq -r '.[0].tag_name')" ;;
   3)
-    _input_tips '自选版本(e.g. v1.0.0): '
+    _input_tips 'Choose version (e.g. v1.0.0): '
     read -r specified_version
     check_xray_version_is_exists "${specified_version}"
     SPECIFIED_VERSION="${specified_version}"
@@ -1141,13 +1138,13 @@ function xray_installation_processes() {
 }
 
 function config_processes() {
-  _input_tips '请选择操作: '
+  _input_tips 'Please select an operation: '
   read -r choose
   case ${choose} in
   1)
     UPDATE_CONFIG='Y'
     if [[ "${STATUS}" -eq 1 ]]; then
-      _input_tips '是否使用全新的配置 [y/N] '
+      _input_tips 'Use a completely new configuration? [y/N] '
       read -r is_new_config
       if [[ ${is_new_config} =~ ^[Yy]$ ]]; then
         STATUS=0
@@ -1172,7 +1169,7 @@ function config_processes() {
 }
 
 function xray_config_processes() {
-  _input_tips '请选择操作: '
+  _input_tips 'Please select an operation: '
   read -r choose
   case ${choose} in
   1) XTLS_CONFIG='mkcp' ;;
@@ -1189,7 +1186,7 @@ function xray_config_processes() {
 }
 
 function main_processes() {
-  _input_tips '请选择操作: '
+  _input_tips 'Please select an operation: '
   read -r choose
 
   if ! [[ -d /usr/local/xray-script ]]; then
@@ -1241,15 +1238,15 @@ function main_processes() {
 
 function print_banner() {
   case $(($(get_random_number 0 100) % 2)) in
-  0) echo "IBtbMDsxOzM1Ozk1bV8bWzA7MTszMTs5MW1fG1swbSAgIBtbMDsxOzMyOzkybV9fG1swbSAgG1swOzE7MzQ7OTRtXxtbMG0gICAgG1swOzE7MzE7OTFtXxtbMG0gICAbWzA7MTszMjs5Mm1fG1swOzE7MzY7OTZtX18bWzA7MTszNDs5NG1fXxtbMDsxOzM1Ozk1bV9fG1swbSAgIBtbMDsxOzMzOzkzbV8bWzA7MTszMjs5Mm1fXxtbMDsxOzM2Ozk2bV9fG1swOzE7MzQ7OTRtX18bWzBtICAgG1swOzE7MzE7OTFtXxtbMDsxOzMzOzkzbV9fG1swOzE7MzI7OTJtX18bWzBtICAKIBtbMDsxOzMxOzkxbVwbWzBtIBtbMDsxOzMzOzkzbVwbWzBtIBtbMDsxOzMyOzkybS8bWzBtIBtbMDsxOzM2Ozk2bS8bWzBtIBtbMDsxOzM0Ozk0bXwbWzBtIBtbMDsxOzM1Ozk1bXwbWzBtICAbWzA7MTszMzs5M218G1swbSAbWzA7MTszMjs5Mm18G1swbSAbWzA7MTszNjs5Nm18XxtbMDsxOzM0Ozk0bV8bWzBtICAgG1swOzE7MzE7OTFtX18bWzA7MTszMzs5M218G1swbSAbWzA7MTszMjs5Mm18XxtbMDsxOzM2Ozk2bV8bWzBtICAgG1swOzE7MzU7OTVtX18bWzA7MTszMTs5MW18G1swbSAbWzA7MTszMzs5M218G1swbSAgG1swOzE7MzI7OTJtXxtbMDsxOzM2Ozk2bV8bWzBtIBtbMDsxOzM0Ozk0bVwbWzBtIAogIBtbMDsxOzMyOzkybVwbWzBtIBtbMDsxOzM2Ozk2bVYbWzBtIBtbMDsxOzM0Ozk0bS8bWzBtICAbWzA7MTszNTs5NW18G1swbSAbWzA7MTszMTs5MW18G1swOzE7MzM7OTNtX18bWzA7MTszMjs5Mm18G1swbSAbWzA7MTszNjs5Nm18G1swbSAgICAbWzA7MTszNTs5NW18G1swbSAbWzA7MTszMTs5MW18G1swbSAgICAgICAbWzA7MTszNDs5NG18G1swbSAbWzA7MTszNTs5NW18G1swbSAgICAbWzA7MTszMjs5Mm18G1swbSAbWzA7MTszNjs5Nm18XxtbMDsxOzM0Ozk0bV8pG1swbSAbWzA7MTszNTs5NW18G1swbQogICAbWzA7MTszNjs5Nm0+G1swbSAbWzA7MTszNDs5NG08G1swbSAgIBtbMDsxOzMxOzkxbXwbWzBtICAbWzA7MTszMjs5Mm1fXxtbMG0gIBtbMDsxOzM0Ozk0bXwbWzBtICAgIBtbMDsxOzMxOzkxbXwbWzBtIBtbMDsxOzMzOzkzbXwbWzBtICAgICAgIBtbMDsxOzM1Ozk1bXwbWzBtIBtbMDsxOzMxOzkxbXwbWzBtICAgIBtbMDsxOzM2Ozk2bXwbWzBtICAbWzA7MTszNDs5NG1fG1swOzE7MzU7OTVtX18bWzA7MTszMTs5MW0vG1swbSAKICAbWzA7MTszNDs5NG0vG1swbSAbWzA7MTszNTs5NW0uG1swbSAbWzA7MTszMTs5MW1cG1swbSAgG1swOzE7MzM7OTNtfBtbMG0gG1swOzE7MzI7OTJtfBtbMG0gIBtbMDsxOzM0Ozk0bXwbWzBtIBtbMDsxOzM1Ozk1bXwbWzBtICAgIBtbMDsxOzMzOzkzbXwbWzBtIBtbMDsxOzMyOzkybXwbWzBtICAgICAgIBtbMDsxOzMxOzkxbXwbWzBtIBtbMDsxOzMzOzkzbXwbWzBtICAgIBtbMDsxOzM0Ozk0bXwbWzBtIBtbMDsxOzM1Ozk1bXwbWzBtICAgICAKIBtbMDsxOzM0Ozk0bS8bWzA7MTszNTs5NW1fLxtbMG0gG1swOzE7MzE7OTFtXBtbMDsxOzMzOzkzbV9cG1swbSAbWzA7MTszMjs5Mm18G1swOzE7MzY7OTZtX3wbWzBtICAbWzA7MTszNTs5NW18XxtbMDsxOzMxOzkxbXwbWzBtICAgIBtbMDsxOzMyOzkybXwbWzA7MTszNjs5Nm1ffBtbMG0gICAgICAgG1swOzE7MzM7OTNtfBtbMDsxOzMyOzkybV98G1swbSAgICAbWzA7MTszNTs5NW18XxtbMDsxOzMxOzkxbXwbWzBtICAgICAKCkNvcHlyaWdodCAoQykgenhjdm9zIHwgaHR0cHM6Ly9naXRodWIuY29tL3p4Y3Zvcy9YcmF5LXNjcmlwdAoK" | base64 --decode ;;
+  0) echo "IBtbMDsxOzM1Ozk1bV8bWzA7MTszMTs5MW1fG1swbSAgIBtbMDsxOzMyOzkybV9fG1swbSAgG1swOzE7MzQ7OTRtXxtbMG0gICAgG1swOzE7MzE7OTFtXxtbMG0gICAbWzA7MTszMjs5Mm1fG1swOzE7MzY7OTZtX18bWzA7MTszNDs5NG1fXxtbMDsxOzM1Ozk1bV9fG1swbSAgIBtbMDsxOzMzOzkzbV8bWzA7MTszMjs5Mm1fXxtbMDsxOzM2Ozk2bV9fG1swOzE7MzQ7OTRmX18bWzBtICAgG1swOzE7MzE7OTFtXxtbMDsxOzMzOzkzbV9fG1swOzE7MzI7OTJtX18bWzBtICAKIBtbMDsxOzMxOzkxbVwbWzBtIBtbMDsxOzMzOzkzbVwbWzBtIBtbMDsxOzMyOzkybS8bWzBtIBtbMDsxOzM2Ozk2bS8bWzBtIBtbMDsxOzM0Ozk0bXwbWzBtIBtbMDsxOzM1Ozk1bXwbWzBtICAbWzA7MTszMzs5M218G1swbSAbWzA7MTszMjs5Mm18G1swbSAbWzA7MTszNjs5Nm18XxtbMDsxOzM0Ozk0bV8bWzBtICAgG1swOzE7MzE7OTFtX18bWzA7MTszMzs5M218G1swbSAbWzA7MTszMjs5Mm18XxtbMDsxOzM2Ozk2bV8bWzBtICAgG1swOzE7MzU7OTVtX18bWzA7MTszMTs5MW18G1swbSAbWzA7MTszMzs5M218G1swbSAgG1swOzE7MzI7OTJtXxtbMDsxOzM2Ozk2bV8bWzBtIBtbMDsxOzM0Ozk0bVwbWzBtIAogIBtbMDsxOzMyOzkybVwbWzBtIBtbMDsxOzM2Ozk2bVYbWzBtIBtbMDsxOzM0Ozk0bS8bWzBtICAbWzA7MTszNTs5NW18G1swbSAbWzA7MTszMTs5MW18G1swOzE7MzM7OTNtX18bWzA7MTszMjs5Mm18G1swbSAbWzA7MTszNjs5Nm18G1swbSAgICAbWzA7MTszNTs5NW18G1swbSAbWzA7MTszMTs5MW18G1swbSAgICAgICAbWzA7MTszNDs5NG18G1swbSAbWzA7MTszNTs5NW18G1swbSAgICAbWzA7MTszMjs5Mm18G1swbSAbWzA7MTszNjs5Nm18XxtbMDsxOzM0Ozk0bV8pG1swbSAbWzA7MTszNTs5NW18G1swbQogICAbWzA7MTszNjs5Nm0+G1swbSAbWzA7MTszNDs5NG08G1swbSAgIBtbMDsxOzMxOzkxbXwbWzBtICAbWzA7MTszMjs5Mm1fXxtbMG0gIBtbMDsxOzM0Ozk0bXwbWzBtICAgIBtbMDsxOzMxOzkxbXwbWzBtIBtbMDsxOzMzOzkzbXwbWzBtICAgICAgIBtbMDsxOzM1Ozk1bXwbWzBtIBtbMDsxOzMxOzkxbXwbWzBtICAgIBtbMDsxOzM2Ozk2bXwbWzBtICAbWzA7MTszNDs5NG1fG1swOzE7MzU7OTVtX18bWzA7MTszMTs5MW0vG1swbSAKICAbWzA7MTszNDs5NG0vG1swbSAbWzA7MTszNTs5NW0uG1swbSAbWzA7MTszMTs5MW1cG1swbSAgG1swOzE7MzM7OTNtfBtbMG0gG1swOzE7MzI7OTJtfBtbMG0gIBtbMDsxOzM0Ozk0bXwbWzBtIBtbMDsxOzM1Ozk1bXwbWzBtICAgIBtbMDsxOzMzOzkzbXwbWzBtIBtbMDsxOzMyOzkybXwbWzBtICAgICAgIBtbMDsxOzMxOzkxbXwbWzBtIBtbMDsxOzMzOzkzbXwbWzBtICAgIBtbMDsxOzM0Ozk0bXwbWzBtIBtbMDsxOzM1Ozk1bXwbWzBtICAgICAKIBtbMDsxOzM0Ozk0bS8bWzA7MTszNTs5NW1fLxtbMG0gG1swOzE7MzE7OTFtXBtbMDsxOzMzOzkzbV9cG1swbSAbWzA7MTszMjs5Mm18G1swOzE7MzY7OTZtX3wbWzBtICAbWzA7MTszNTs5NW18XxtbMDsxOzMxOzkxbXwbWzBtICAgIBtbMDsxOzMyOzkybXwbWzA7MTszNjs5Nm1ffBtbMG0gICAgICAgG1swOzE7MzM7OTNtfBtbMDsxOzMyOzkybV98G1swbSAgICAbWzA7MTszNTs5NW18XxtbMDsxOzMxOzkxbXwbWzBtICAgICAKCkNvcHlyaWdodCAoQykgenhjdm9zIHwgaHR0cHM6Ly9naXRodWIuY29tL3p4Y3Zvcy9YcmF5LXNjcmlwdAoK" | base64 --decode ;;
   1) echo "IBtbMDsxOzM0Ozk0bV9fG1swbSAgIBtbMDsxOzM0Ozk0bV9fG1swbSAgG1swOzE7MzQ7OTRtXxtbMG0gICAgG1swOzE7MzQ7OTRtXxtbMG0gICAbWzA7MzRtX19fX19fXxtbMG0gICAbWzA7MzRtX19fG1swOzM3bV9fX18bWzBtICAgG1swOzM3bV9fX19fG1swbSAgCiAbWzA7MTszNDs5NG1cG1swbSAbWzA7MTszNDs5NG1cG1swbSAbWzA7MTszNDs5NG0vG1swbSAbWzA7MTszNDs5NG0vG1swbSAbWzA7MzRtfBtbMG0gG1swOzM0bXwbWzBtICAbWzA7MzRtfBtbMG0gG1swOzM0bXwbWzBtIBtbMDszNG18X18bWzBtICAgG1swOzM3bV9ffBtbMG0gG1swOzM3bXxfXxtbMG0gICAbWzA7MzdtX198G1swbSAbWzA7MzdtfBtbMG0gIBtbMDsxOzMwOzkwbV9fG1swbSAbWzA7MTszMDs5MG1cG1swbSAKICAbWzA7MzRtXBtbMG0gG1swOzM0bVYbWzBtIBtbMDszNG0vG1swbSAgG1swOzM0bXwbWzBtIBtbMDszNG18X198G1swbSAbWzA7MzdtfBtbMG0gICAgG1swOzM3bXwbWzBtIBtbMDszN218G1swbSAgICAgICAbWzA7MzdtfBtbMG0gG1swOzE7MzA7OTBtfBtbMG0gICAgG1swOzE7MzA7OTBtfBtbMG0gG1swOzE7MzA7OTBtfF9fKRtbMG0gG1swOzE7MzA7OTBtfBtbMG0KICAgG1swOzM0bT4bWzBtIBtbMDszNG08G1swbSAgIBtbMDszN218G1swbSAgG1swOzM3bV9fG1swbSAgG1swOzM3bXwbWzBtICAgIBtbMDszN218G1swbSAbWzA7MzdtfBtbMG0gICAgICAgG1swOzE7MzA7OTBtfBtbMG0gG1swOzE7MzA7OTBtfBtbMG0gICAgG1swOzE7MzA7OTBtfBtbMG0gIBtbMDsxOzM0Ozk0bV9fXy8bWzBtIAogIBtbMDszN20vG1swbSAbWzA7MzdtLhtbMG0gG1swOzM3bVwbWzBtICAbWzA7MzdtfBtbMG0gG1swOzM3bXwbWzBtICAbWzA7MzdtfBtbMG0gG1swOzE7MzA7OTBtfBtbMG0gICAgG1swOzE7MzA7OTBtfBtbMG0gG1swOzE7MzA7OTBtfBtbMG0gICAgICAgG1swOzE7MzA7OTBtfBtbMG0gG1swOzE7MzQ7OTRtfBtbMG0gICAgG1swOzE7MzQ7OTRtfBtbMG0gG1swOzE7MzQ7OTRtfBtbMG0gICAgIAogG1swOzM3bS9fLxtbMG0gG1swOzM3bVxfXBtbMG0gG1swOzE7MzA7OTBtfF98G1swbSAgG1swOzE7MzA7OTBtfF98G1swbSAgICAbWzA7MTszMDs5MG18X3wbWzBtICAgICAgIBtbMDsxOzM0Ozk0bXxffBtbMG0gICAgG1swOzE7MzQ7OTRtfF8bWzA7MzRtfBtbMG0gICAgIAoKQ29weXJpZ2h0IChDKSB6eGN2b3MgfCBodHRwczovL2dpdGh1Yi5jb20venhjdm9zL1hyYXktc2NyaXB0Cgo=" | base64 --decode ;;
   esac
 }
 
 function print_script_status() {
-  local xray_version="${RED}未安装${NC}"
-  local script_xray_config="${RED}未配置${NC}"
-  local warp_status="${RED}未启动${NC}"
+  local xray_version="${RED}Not installed${NC}"
+  local script_xray_config="${RED}Not configured${NC}"
+  local warp_status="${RED}Not started${NC}"
   if _exists "xray"; then
     xray_version="${GREEN}v$(xray version | awk '$1=="Xray" {print $2}')${NC}"
     if _exists "jq" && [[ -d /usr/local/xray-script ]]; then
@@ -1261,7 +1258,7 @@ function print_script_status() {
     fi
   fi
   if _exists "docker" && docker ps | grep -q xray-script-warp; then
-    warp_status="${GREEN}已启动${NC}"
+    warp_status="${GREEN}Started${NC}"
   fi
   echo -e "-------------------------------------------"
   echo -e "Xray       : ${xray_version}"
@@ -1273,72 +1270,74 @@ function print_script_status() {
 
 function installation_management() {
   clear
-  echo -e "----------------- 安装流程 ----------------"
-  echo -e "${GREEN}1.${NC} 全自动(${GREEN}默认${NC})"
-  echo -e "${GREEN}2.${NC} 自定义"
+  echo -e "----------------- Installation Process ----------------"
+  echo -e "${GREEN}1.${NC} Fully Automatic(${GREEN}default${NC})"
+  echo -e "${GREEN}2.${NC} Custom"
   echo -e "-------------------------------------------"
-  echo -e "1.稳定版, XHTTP, 屏蔽 bt, cn, 广告, 开启 geodata 自动更新"
-  echo -e "2.自选版本,自选配置"
+  echo -e "1.Stable version, XHTTP, block bt, cn, ads, enable geodata auto-update"
+  echo -e "2.Choose version, choose configuration"
   echo -e "-------------------------------------------"
   installation_processes
 }
 
+
 function xray_installation_management() {
   clear
-  echo -e "----------------- 装载管理 ----------------"
-  echo -e "${GREEN}1.${NC} 最新本"
-  echo -e "${GREEN}2.${NC} 稳定本(${GREEN}默认${NC})"
-  echo -e "${GREEN}3.${NC} 自选版"
+  echo -e "----------------- Installation Management ----------------"
+  echo -e "${GREEN}1.${NC} Latest Version"
+  echo -e "${GREEN}2.${NC} Stable Version(${GREEN}default${NC})"
+  echo -e "${GREEN}3.${NC} Custom Version"
   echo -e "-------------------------------------------"
-  echo -e "1.最新版包含了 ${YELLOW}pre-release${NC} 版本"
-  echo -e "2.稳定版为最新发布的${YELLOW}非 pre-release${NC} 版本"
-  echo -e "3.自选版可能存在${RED}配置不兼容${NC}问题，请自行解决"
+  echo -e "1.The latest version includes ${YELLOW}pre-release${NC} versions"
+  echo -e "2.The stable version is the latest released ${YELLOW}non pre-release${NC} version"
+  echo -e "3.The custom version might have ${RED}configuration compatibility issues${NC}, please resolve them yourself"
   echo -e "-------------------------------------------"
   xray_installation_processes
 }
 
+
 function config_management() {
   clear
-  echo -e "----------------- 管理配置 ----------------"
-  echo -e "${GREEN}1.${NC} 更新配置"
-  echo -e "${GREEN}2.${NC} 开启 WARP Proxy"
-  echo -e "${GREEN}3.${NC} 关闭 WARP Proxy"
-  echo -e "${GREEN}4.${NC} 开启 geodata 自动更新"
-  echo -e "${GREEN}5.${NC} 关闭 geodata 自动更新"
-  echo -e "${GREEN}6.${NC} 添加 WARP ip 分流"
-  echo -e "${GREEN}7.${NC} 添加 WARP domain 分流"
-  echo -e "${GREEN}8.${NC} 添加屏蔽 ip 分流"
-  echo -e "${GREEN}9.${NC} 添加屏蔽 domain 分流"
+  echo -e "----------------- Manage Configuration ----------------"
+  echo -e "${GREEN}1.${NC} Update Configuration"
+  echo -e "${GREEN}2.${NC} Enable WARP Proxy"
+  echo -e "${GREEN}3.${NC} Disable WARP Proxy"
+  echo -e "${GREEN}4.${NC} Enable geodata auto-update"
+  echo -e "${GREEN}5.${NC} Disable geodata auto-update"
+  echo -e "${GREEN}6.${NC} Add WARP IP routing"
+  echo -e "${GREEN}7.${NC} Add WARP domain routing"
+  echo -e "${GREEN}8.${NC} Add IP blocking routing"
+  echo -e "${GREEN}9.${NC} Add domain blocking routing"
   echo -e "-------------------------------------------"
-  echo -e "1.更新配置功能为整个配置的更新, 如果想要单独修改自行修改配置文件"
-  echo -e "2-3.WARP Proxy 功能通过 Docker 部署, 开启时自动安装 Docker"
-  echo -e "2-3.WARP Proxy 详情 https://github.com/haoel/haoel.github.io?tab=readme-ov-file#1043-docker-%E4%BB%A3%E7%90%86"
-  echo -e "2-3.每次成功开启 WARP Proxy 都会重新申请 WARP 账号, ${RED}频繁操作可能导致 IP 被 Cloud­flare 拉黑${NC}"
-  echo -e "4-5.geodata 由 https://github.com/Loyalsoldier/v2ray-rules-dat 提供"
-  echo -e "6.(${RED}需要开启 WARP${NC})添加关于 ip 的 WARP 分流, 相关分流添加在 ruleTag 为 warp-ip 中"
-  echo -e "7.(${RED}需要开启 WARP${NC})添加关于 domain 的 WARP 分流, 相关分流添加在 ruleTag 为 warp-domain 中"
-  echo -e "8.添加关于 ip 的屏蔽分流, 相关分流添加在 ruleTag 为 block-ip 中"
-  echo -e "9.添加关于 domain 的屏蔽分流, 相关分流添加在 ruleTag 为 block-domain 中"
+  echo -e "1.The update configuration function updates the entire configuration; if you want to modify individual parts, edit the config file manually."
+  echo -e "2-3.The WARP Proxy feature is deployed via Docker, which is automatically installed when enabled."
+  echo -e "2-3.WARP Proxy details https://github.com/haoel/haoel.github.io?tab=readme-ov-file#1043-docker-%E4%BB%A3%E7%90%86"
+  echo -e "2-3.Each successful enablement of WARP Proxy will reapply for a WARP account, ${RED}frequent operations might lead to IP blacklisting by Cloudflare${NC}"
+  echo -e "4-5.geodata is provided by https://github.com/Loyalsoldier/v2ray-rules-dat"
+  echo -e "6.(${RED}Requires WARP to be enabled${NC}) Add WARP IP routing, related routing added under ruleTag 'warp-ip'"
+  echo -e "7.(${RED}Requires WARP to be enabled${NC}) Add WARP domain routing, related routing added under ruleTag 'warp-domain'"
+  echo -e "8.Add IP blocking routing, related routing added under ruleTag 'block-ip'"
+  echo -e "9.Add domain blocking routing, related routing added under ruleTag 'block-domain'"
   echo -e "-------------------------------------------"
   config_processes
 }
 
 function xray_config_management() {
   clear
-  echo -e "----------------- 更新配置 ----------------"
+  echo -e "----------------- Update Configuration ----------------"
   echo -e "${GREEN}1.${NC} VLESS+mKCP+seed"
   echo -e "${GREEN}2.${NC} VLESS+Vision+REALITY"
-  echo -e "${GREEN}3.${NC} VLESS+XHTTP+REALITY(${GREEN}默认${NC})"
+  echo -e "${GREEN}3.${NC} VLESS+XHTTP+REALITY(${GREEN}default${NC})"
   echo -e "${GREEN}4.${NC} Trojan+XHTTP+REALITY"
   echo -e "${GREEN}5.${NC} VLESS+Vision+REALITY+VLESS+XHTTP+REALITY"
   echo -e "-------------------------------------------"
-  echo -e "1.mKCP ${YELLOW}牺牲带宽${NC}来${GREEN}降低延迟${NC}。传输同样的内容，${RED}mKCP 一般比 TCP 消耗更多的流量${NC}"
-  echo -e "2.XTLS(Vision) ${GREEN}解决 TLS in TLS 问题${NC}"
-  echo -e "3.XHTTP ${GREEN}全场景通吃${NC}的时代正式到来(详情: https://github.com/XTLS/Xray-core/discussions/4113)"
-  echo -e "3.1.XHTTP 默认有多路复用，${GREEN}延迟比 Vision 低${NC}但${YELLOW}多线程测速不如它${NC}"
-  echo -e "3.2.${RED}此外 v2rayN&G 客户端有全局 mux.cool 设置，用 XHTTP 前记得关闭，不然连不上新版 Xray 服务端${NC}"
-  echo -e "4.VLESS 替换为 Trojan"
-  echo -e "5.利用 VLESS+Vision+REALITY 回落 VLESS+XHTTP ${GREEN}共用 443 端口${NC}"
+  echo -e "1.mKCP ${YELLOW}sacrifices bandwidth${NC} to ${GREEN}reduce latency${NC}. For the same content transmission, ${RED}mKCP generally consumes more traffic than TCP${NC}"
+  echo -e "2.XTLS(Vision) ${GREEN}solves the TLS in TLS issue${NC}"
+  echo -e "3.XHTTP ${GREEN}the era of all-scenario coverage${NC} has officially arrived (details: https://github.com/XTLS/Xray-core/discussions/4113)"
+  echo -e "3.1.XHTTP by default has multiplexing, ${GREEN}lower latency than Vision${NC} but ${YELLOW}not as good in multi-threaded speed tests${NC}"
+  echo -e "3.2.${RED}Moreover, the v2rayN&G client has a global mux.cool setting, remember to disable it before using XHTTP, otherwise, you won't connect to the new Xray server${NC}"
+  echo -e "4.VLESS replaced by Trojan"
+  echo -e "5.Utilizes VLESS+Vision+REALITY to fallback to VLESS+XHTTP ${GREEN}sharing port 443${NC}"
   echo -e "-------------------------------------------"
   xray_config_processes
 }
@@ -1351,21 +1350,21 @@ function main() {
   print_script_status
   echo -e "--------------- Xray-script ---------------"
   echo -e " Version      : ${GREEN}v2024-12-31${NC}"
-  echo -e " Description  : Xray 管理脚本"
-  echo -e "----------------- 装载管理 ----------------"
-  echo -e "${GREEN}1.${NC} 完整安装"
-  echo -e "${GREEN}2.${NC} 仅安装/更新"
-  echo -e "${GREEN}3.${NC} 卸载"
-  echo -e "----------------- 操作管理 ----------------"
-  echo -e "${GREEN}4.${NC} 启动"
-  echo -e "${GREEN}5.${NC} 停止"
-  echo -e "${GREEN}6.${NC} 重启"
-  echo -e "----------------- 配置管理 ----------------"
-  echo -e "${GREEN}7.${NC} 分享链接与二维码"
-  echo -e "${GREEN}8.${NC} 信息统计"
-  echo -e "${GREEN}9.${NC} 管理配置"
+  echo -e " Description  : Xray management script"
+  echo -e "----------------- Installation Management ----------------"
+  echo -e "${GREEN}1.${NC} Full installation"
+  echo -e "${GREEN}2.${NC} Install/Update only"
+  echo -e "${GREEN}3.${NC} Uninstall"
+  echo -e "----------------- Operation Management ----------------"
+  echo -e "${GREEN}4.${NC} Start"
+  echo -e "${GREEN}5.${NC} Stop"
+  echo -e "${GREEN}6.${NC} Restart"
+  echo -e "----------------- Configuration Management ----------------"
+  echo -e "${GREEN}7.${NC} Share link and QR code"
+  echo -e "${GREEN}8.${NC} Information statistics"
+  echo -e "${GREEN}9.${NC} Manage configuration"
   echo -e "-------------------------------------------"
-  echo -e "${RED}0.${NC} 退出"
+  echo -e "${RED}0.${NC} Exit"
   main_processes
 }
 
