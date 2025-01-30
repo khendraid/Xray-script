@@ -10,7 +10,7 @@
 #   REALITY: https://github.com/XTLS/REALITY
 #   XHTTP: https://github.com/XTLS/Xray-core/discussions/4113
 # Xray-script:
-#   https://github.com/zxcvos/Xray-script
+#   https://github.com/khendraid/Xray-script
 # Xray-examples:
 #   https://github.com/chika0801/Xray-examples
 #   https://github.com/lxhao61/integrated-examples
@@ -261,7 +261,7 @@ function _systemctl() {
 }
 
 function check_xray_script_version() {
-  local url="https://api.github.com/repos/zxcvos/Xray-script/contents"
+  local url="https://api.github.com/repos/khendraid/Xray-script/contents"
   local local_size=$(stat -c %s "${CUR_DIR}/${CUR_FILE}")
   local remote_size=$(curl -fsSL "$url" | jq -r '.[] | select(.name == "xhttp.sh") | .size')
   if [[ ${local_size} -ne ${remote_size} ]]; then
@@ -274,7 +274,7 @@ function check_xray_script_version() {
       sleep 2
       ;;
     *)
-      echo 'wget --no-check-certificate -O ${HOME}/Xray-script.sh https://raw.githubusercontent.com/zxcvos/Xray-script/main/xhttp.sh && bash ${HOME}/Xray-script.sh'
+      echo 'wget --no-check-certificate -O ${HOME}/Xray-script.sh https://raw.githubusercontent.com/khendraid/Xray-script/main/xhttp.sh && bash ${HOME}/Xray-script.sh'
       exit 0
       ;;
     esac
@@ -328,8 +328,8 @@ function build_cloudflare_warp() {
     _info 'Building WARP Proxy image'
     mkdir -p /usr/local/xray-script/warp
     mkdir -p ${HOME}/.warp
-    _error_detect "wget --no-check-certificate -O /usr/local/xray-script/warp/Dockerfile https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudflare-warp/Dockerfile"
-    _error_detect "wget --no-check-certificate -O /usr/local/xray-script/warp/startup.sh https://raw.githubusercontent.com/zxcvos/Xray-script/main/cloudflare-warp/startup.sh"
+    _error_detect "wget --no-check-certificate -O /usr/local/xray-script/warp/Dockerfile https://raw.githubusercontent.com/khendraid/Xray-script/main/cloudflare-warp/Dockerfile"
+    _error_detect "wget --no-check-certificate -O /usr/local/xray-script/warp/startup.sh https://raw.githubusercontent.com/khendraid/Xray-script/main/cloudflare-warp/startup.sh"
     cd /usr/local/xray-script/warp
     docker build -t xray-script-warp .
   fi
@@ -390,7 +390,7 @@ function disable_warp() {
 
 function enable_cron() {
   if ! [[ -f /usr/local/xray-script/update-dat.sh ]]; then
-    wget --no-check-certificate -O /usr/local/xray-script/update-dat.sh https://raw.githubusercontent.com/zxcvos/Xray-script/main/tool/update-dat.sh
+    wget --no-check-certificate -O /usr/local/xray-script/update-dat.sh https://raw.githubusercontent.com/khendraid/Xray-script/main/tool/update-dat.sh
     chmod a+x /usr/local/xray-script/update-dat.sh
     (
       crontab -l 2>/dev/null
@@ -835,7 +835,7 @@ function get_xray_config_data() {
 }
 
 function get_xtls_download_url() {
-  local url="https://api.github.com/repos/zxcvos/Xray-script/contents/XTLS"
+  local url="https://api.github.com/repos/khendraid/Xray-script/contents/XTLS"
   DOWNLOAD_URL=$(curl -fsSL "$url" | jq -r --arg target "${XTLS_CONFIG}" '.[] | select((.name | ascii_downcase | sub("\\.json$"; "")) == $target) | .download_url')
 }
 
@@ -1108,7 +1108,7 @@ function view_xray_config() {
 }
 
 function view_xray_traffic() {
-  [[ -f /usr/local/xray-script/traffic.sh ]] || wget --no-check-certificate -O /usr/local/xray-script/traffic.sh https://raw.githubusercontent.com/zxcvos/Xray-script/main/tool/traffic.sh
+  [[ -f /usr/local/xray-script/traffic.sh ]] || wget --no-check-certificate -O /usr/local/xray-script/traffic.sh https://raw.githubusercontent.com/khendraid/Xray-script/main/tool/traffic.sh
   bash /usr/local/xray-script/traffic.sh
 }
 
@@ -1192,8 +1192,8 @@ function main_processes() {
   if ! [[ -d /usr/local/xray-script ]]; then
     install_dependencies
     mkdir -p /usr/local/xray-script
-    wget --no-check-certificate -q -O /usr/local/xray-script/config.json https://raw.githubusercontent.com/zxcvos/Xray-script/refs/heads/main/XTLS/config.json
-    wget --no-check-certificate -q -O /usr/local/xray-script/serverNames.json https://raw.githubusercontent.com/zxcvos/Xray-script/refs/heads/main/XTLS/serverNames.json
+    wget --no-check-certificate -q -O /usr/local/xray-script/config.json https://raw.githubusercontent.com/khendraid/Xray-script/refs/heads/main/XTLS/config.json
+    wget --no-check-certificate -q -O /usr/local/xray-script/serverNames.json https://raw.githubusercontent.com/khendraid/Xray-script/refs/heads/main/XTLS/serverNames.json
   fi
   STATUS=$(jq -r '.status' /usr/local/xray-script/config.json)
   WARP=$(jq -r '.warp' /usr/local/xray-script/config.json)
